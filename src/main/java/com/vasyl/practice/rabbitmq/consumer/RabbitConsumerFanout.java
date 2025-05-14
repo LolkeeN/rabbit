@@ -9,19 +9,9 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 
 @Service
-public class RabbitConsumer {
+public class RabbitConsumerFanout {
 
-    private static final Logger LOG = Logger.getLogger(RabbitConsumer.class.getName());
-
-    @RabbitListener(bindings = @QueueBinding(
-            value = @Queue(value = "testQueue", durable = "true"),
-            exchange = @Exchange(value = "test.exch", ignoreDeclarationExceptions = "true"),
-            key = "testKey")
-    )
-    public void handleMessage(Message message) {
-        LOG.info("Received Message: " + new String(message.getBody()));
-    }
-
+    private static final Logger LOG = Logger.getLogger(RabbitConsumerFanout.class.getName());
 
     @RabbitListener(bindings = @QueueBinding(
             value = @Queue(value = "testQueueFanout1", durable = "true"),
