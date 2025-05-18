@@ -13,11 +13,7 @@ public class RabbitConsumerDirect {
 
     private static final Logger LOG = Logger.getLogger(RabbitConsumerDirect.class.getName());
 
-    @RabbitListener(bindings = @QueueBinding(
-            value = @Queue(value = "testQueue", durable = "true"),
-            exchange = @Exchange(value = "test.exch", ignoreDeclarationExceptions = "true"),
-            key = "testKey")
-    )
+    @RabbitListener(queues = "testQueue")
     public void handleMessage(Message message) {
         LOG.info("Received Message: " + new String(message.getBody()));
     }

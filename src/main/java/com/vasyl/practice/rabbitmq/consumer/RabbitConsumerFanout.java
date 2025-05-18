@@ -13,26 +13,17 @@ public class RabbitConsumerFanout {
 
     private static final Logger LOG = Logger.getLogger(RabbitConsumerFanout.class.getName());
 
-    @RabbitListener(bindings = @QueueBinding(
-            value = @Queue(value = "testQueueFanout1", durable = "true"),
-            exchange = @Exchange(value = "test.exch.fanout", ignoreDeclarationExceptions = "true", type = "fanout"))
-    )
+    @RabbitListener(queues = "testQueueFanout1")
     public void handleTestFanout1(Message message) {
         LOG.info("Fanout1 Received Message: " + new String(message.getBody()));
     }
 
-    @RabbitListener(bindings = @QueueBinding(
-            value = @Queue(value = "testQueueFanout2", durable = "true"),
-            exchange = @Exchange(value = "test.exch.fanout", ignoreDeclarationExceptions = "true", type = "fanout"))
-    )
+    @RabbitListener(queues = "testQueueFanout2")
     public void handleTestFanout2(Message message) {
         LOG.info("Fanout2 Received Message: " + new String(message.getBody()));
     }
 
-    @RabbitListener(bindings = @QueueBinding(
-            value = @Queue(value = "testQueueFanout3", durable = "true"),
-            exchange = @Exchange(value = "test.exch.fanout", ignoreDeclarationExceptions = "true", type = "fanout"))
-    )
+    @RabbitListener(queues = "testQueueFanout3")
     public void handleTestFanout3(Message message) {
         LOG.info("Fanout3 Received Message: " + new String(message.getBody()));
     }

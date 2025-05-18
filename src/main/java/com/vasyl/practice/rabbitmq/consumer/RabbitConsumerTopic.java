@@ -13,29 +13,17 @@ public class RabbitConsumerTopic {
 
     private static final Logger LOG = Logger.getLogger(RabbitConsumerTopic.class.getName());
 
-    @RabbitListener(bindings = @QueueBinding(
-            value = @Queue(value = "testQueueTopic1", durable = "true"),
-            exchange = @Exchange(value = "test.exch.topic", ignoreDeclarationExceptions = "true", type = "topic"),
-    key = "test.topic.number.one")
-    )
+    @RabbitListener(queues = "testQueueTopic1")
     public void handleTestTopic1(Message message) {
         LOG.info("Topic1 Received Message: " + new String(message.getBody()));
     }
 
-    @RabbitListener(bindings = @QueueBinding(
-            value = @Queue(value = "testQueueTopic2", durable = "true"),
-            exchange = @Exchange(value = "test.exch.topic", ignoreDeclarationExceptions = "true", type = "topic"),
-    key = "test.topic.#")
-    )
+    @RabbitListener(queues = "testQueueTopic2")
     public void handleTestTopic2(Message message) {
         LOG.info("Topic2 Received Message: " + new String(message.getBody()));
     }
 
-    @RabbitListener(bindings = @QueueBinding(
-            value = @Queue(value = "testQueueTopic3", durable = "true"),
-            exchange = @Exchange(value = "test.exch.topic", ignoreDeclarationExceptions = "true", type = "topic"),
-    key = "test.topic.number.*")
-    )
+    @RabbitListener(queues = "testQueueTopic3")
     public void handleTestFanout1(Message message) {
         LOG.info("Topic3 Received Message: " + new String(message.getBody()));
     }
