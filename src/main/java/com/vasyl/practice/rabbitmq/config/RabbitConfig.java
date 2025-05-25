@@ -2,13 +2,18 @@ package com.vasyl.practice.rabbitmq.config;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.amqp.core.AcknowledgeMode;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.Declarable;
+import org.springframework.amqp.core.Declarables;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
+import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
@@ -42,46 +47,58 @@ public class RabbitConfig {
     public DirectExchange directExchange() {
         return new DirectExchange("test.exch");
     }
+    @Bean
+    public DirectExchange dlxTestExchange() {
+        return new DirectExchange("dlx.test.exch");
+    }
+
+    @Bean
+    public Queue dlxTestQueue() {
+        return new Queue("dlx.test.queue");
+    }
 
     @Bean
     public Queue testQueueTopic1() {
-        return new Queue("testQueueTopic1", true);
+        return new Queue("testQueueTopic1", false);
     }
 
     @Bean
     public Queue testQueueTopic2() {
-        return new Queue("testQueueTopic2", true);
+        return new Queue("testQueueTopic2", false);
     }
 
     @Bean
     public Queue testQueueTopic3() {
-        return new Queue("testQueueTopic3", true);
+        return new Queue("testQueueTopic3", false);
     }
 
     @Bean
     public Queue testQueueFanout1() {
-        return new Queue("testQueueFanout1", true);
+        return new Queue("testQueueFanout1", false);
     }
 
 
     @Bean
     public Queue testQueueFanout2() {
-        return new Queue("testQueueFanout2", true);
+        return new Queue("testQueueFanout2", false);
     }
 
     @Bean
     public Queue testQueueFanout3() {
-        return new Queue("testQueueFanout3", true);
+        return new Queue("testQueueFanout3", false);
     }
 
     @Bean
     public Queue testQueueDirect1() {
-        return new Queue("testQueue", true);
+        return QueueBuilder.nonDurable("testQueue")
+                .withArgument("x-dead-letter-exchange", "dlx.test.exch")
+                .withArgument("x-dead-letter-routing-key", "dlx.test.key")
+                .build();
     }
 
 
     @Bean
-    public List<Binding> topicBindings() {
+    public Declarables topicBindings() {
         Binding topicExchange1 = BindingBuilder.bind(testQueueTopic1()).to(topicExchange()).with("test.topic");
         Binding topicExchange2 = BindingBuilder.bind(testQueueTopic2()).to(topicExchange()).with("test.topic.#");
         Binding topicExchange3 = BindingBuilder.bind(testQueueTopic3()).to(topicExchange()).with("test.topic.number.*");
@@ -91,6 +108,18 @@ public class RabbitConfig {
         Binding fanoutExchange3 = BindingBuilder.bind(testQueueFanout3()).to(fanoutExchange());
 
         Binding directExchange1 = BindingBuilder.bind(testQueueDirect1()).to(directExchange()).with("testKey");
-        return List.of(topicExchange1, topicExchange2, topicExchange3, fanoutExchange1, fanoutExchange2, fanoutExchange3, directExchange1);
+
+        Binding dlxExchangeBinding = BindingBuilder.bind(dlxTestQueue()).to(dlxTestExchange()).with("dlx.test.key");
+        return new Declarables(topicExchange1, topicExchange2, topicExchange3,
+                fanoutExchange1, fanoutExchange2, fanoutExchange3, directExchange1, dlxExchangeBinding);
     }
+
+    @Bean
+    public SimpleRabbitListenerContainerFactory manualAckContainerFactory(ConnectionFactory connectionFactory) {
+        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+        factory.setConnectionFactory(connectionFactory);
+        factory.setAcknowledgeMode(AcknowledgeMode.MANUAL);
+        return factory;
+    }
+
 }
