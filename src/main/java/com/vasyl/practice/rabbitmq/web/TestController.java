@@ -17,8 +17,8 @@ public class TestController {
     private RabbitSender rabbitSender;
 
     @PostMapping("/direct")
-    public void sendMessage(@RequestBody(required = false) Map<String, Object> body) {
-        rabbitSender.sendMessageDirect(body);
+    public void sendMessage(@RequestBody(required = false) Map<String, Object> body, @RequestParam String key, @RequestParam(required = false) String exchange) {
+        rabbitSender.sendMessageDirect(body, key, exchange);
     }
 
     @PostMapping("/fanout")
@@ -30,5 +30,11 @@ public class TestController {
     public void sendMessageTopic(@RequestBody(required = false) Map<String, Object> body,
             @RequestParam String key) {
         rabbitSender.sendMessageTopic(body, key);
+    }
+
+    @PostMapping("/retry")
+    public void sendMessageRetry(@RequestBody(required = false) Map<String, Object> body,
+            @RequestParam String key, @RequestParam String exchange) {
+        rabbitSender.sendMessageDirect(body, key, exchange);
     }
 }

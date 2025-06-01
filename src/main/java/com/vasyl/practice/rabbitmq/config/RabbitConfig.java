@@ -1,11 +1,9 @@
 package com.vasyl.practice.rabbitmq.config;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.core.AcknowledgeMode;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.Declarable;
 import org.springframework.amqp.core.Declarables;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.FanoutExchange;
@@ -16,9 +14,14 @@ import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.rabbit.retry.RejectAndDontRequeueRecoverer;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.retry.interceptor.MethodInvocationRecoverer;
+import org.springframework.retry.interceptor.RetryInterceptorBuilder;
+import org.springframework.retry.interceptor.RetryOperationsInterceptor;
+import org.springframework.retry.interceptor.StatefulRetryOperationsInterceptor;
 
 @Configuration
 @EnableRabbit
@@ -96,6 +99,12 @@ public class RabbitConfig {
                 .build();
     }
 
+    @Bean
+    public Queue retryQueue() {
+        return QueueBuilder.nonDurable("retryQueue")
+                .build();
+    }
+
 
     @Bean
     public Declarables topicBindings() {
@@ -108,10 +117,12 @@ public class RabbitConfig {
         Binding fanoutExchange3 = BindingBuilder.bind(testQueueFanout3()).to(fanoutExchange());
 
         Binding directExchange1 = BindingBuilder.bind(testQueueDirect1()).to(directExchange()).with("testKey");
+        Binding directExchange2 = BindingBuilder.bind(retryQueue()).to(directExchange()).with("testKey");
 
-        Binding dlxExchangeBinding = BindingBuilder.bind(dlxTestQueue()).to(dlxTestExchange()).with("dlx.test.key");
+        Binding dlxExchangeBinding = BindingBuilder.bind(dlxTestQueue()).to(dlxTestExchange()).with("retry.key");
         return new Declarables(topicExchange1, topicExchange2, topicExchange3,
-                fanoutExchange1, fanoutExchange2, fanoutExchange3, directExchange1, dlxExchangeBinding);
+                fanoutExchange1, fanoutExchange2, fanoutExchange3, directExchange1, dlxExchangeBinding,
+                directExchange2);
     }
 
     @Bean
@@ -120,6 +131,32 @@ public class RabbitConfig {
         factory.setConnectionFactory(connectionFactory);
         factory.setAcknowledgeMode(AcknowledgeMode.MANUAL);
         return factory;
+    }
+
+    @Bean
+    public SimpleRabbitListenerContainerFactory retryContainerFactory(ConnectionFactory connectionFactory) {
+        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+        factory.setConnectionFactory(connectionFactory);
+        factory.setAdviceChain(retryInterceptor());
+
+        return factory;
+    }
+
+    @Bean
+    public RetryOperationsInterceptor retryInterceptor() {
+        return RetryInterceptorBuilder.stateless()
+                .maxAttempts(5)
+                .backOffOptions(1000, 2.0, 10000)
+                .recoverer(getDontRequeueRecoverer())
+                .build();
+    }
+
+    private static MethodInvocationRecoverer<Object> getDontRequeueRecoverer() {
+        return (args, cause) -> {
+            // ничего не делаем — сообщение будет отвергнуто
+            // главное — не ловим и не проглатываем ошибку
+            throw new AmqpRejectAndDontRequeueException("Retries exhausted", cause);
+        };
     }
 
 }
